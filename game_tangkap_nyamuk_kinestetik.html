@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Tangkap Nyamuk Kinestetik - Giga Inovation</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Poppins & Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;800;900&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- MediaPipe Hands & Camera Utils -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        p1: { DEFAULT: '#0284c7', light: '#38bdf8', dark: '#0369a1' },
+                        p2: { DEFAULT: '#e11d48', light: '#fb7185', dark: '#be123c' },
+                        accent: '#f59e0b'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Poppins', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; user-select: none; }
+        h1, h2, h3, h4, .font-display { font-family: 'Poppins', sans-serif; }
+        .canvas-container { position: relative; width: 100%; height: 0; padding-bottom: 56.25%; /* 16:9 Aspect Ratio */ }
+        .canvas-container canvas, .canvas-container video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 1rem; object-fit: cover; }
+        .pulse-btn { animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.04); }
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between overflow-x-hidden">
+
+    <!-- HEADER / NAVIGATION -->
+    <header class="bg-slate-800/80 backdrop-blur-md border-b border-slate-700 sticky top-0 z-50 px-4 py-3">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="goToMenu()">
+                <div class="bg-gradient-to-tr from-amber-500 to-rose-500 text-white p-2.5 rounded-2xl shadow-lg flex items-center justify-center">
+                    <i class="fa-solid fa-hand-sparkles text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-rose-400 to-sky-400 font-display">TANGKAP NYAMUK</h1>
+                    <p class="text-[10px] sm:text-xs text-slate-400 font-medium">Game Edukasi Kinestetik Angka (0-9)</p>
+                </div>
+            </div>
+
+            <!-- Header Quick Stats & Controls -->
+            <div class="flex items-center gap-2 sm:gap-4">
+                <button onclick="toggleDiagnostics()" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-xl text-xs font-semibold transition text-slate-300 flex items-center gap-1.5">
+                    <i class="fa-solid fa-chart-line text-sky-400"></i> <span class="hidden sm:inline">Diagnostik</span>
+                </button>
+                <button onclick="openSettingsModal()" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-xl text-xs font-semibold transition text-slate-300 flex items-center gap-1.5">
+                    <i class="fa-solid fa-sliders text-amber-400"></i> <span class="hidden sm:inline">Pengaturan</span>
+                </button>
+                <button onclick="goToMenu()" class="px-3 py-1.5 bg-rose-600/80 hover:bg-rose-600 rounded-xl text-xs font-bold transition text-white flex items-center gap-1.5">
+                    <i class="fa-solid fa-house"></i> <span class="hidden sm:inline">Menu Utama</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN GAME WORKSPACE -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6 flex flex-col justify-center">
+
+        <!-- SECTION 1: MENU UTAMA (SELEKSI MODE) -->
+        <section id="view-menu" class="flex flex-col items-center justify-center py-8 gap-8">
+            <div class="text-center max-w-2xl space-y-3">
+                <span class="px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-bold uppercase tracking-wider">
+                    <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Deteksi Tangan Webcam Super Sensitif
+                </span>
+                <h2 class="text-3xl sm:text-5xl font-black text-white font-display leading-tight">
+                    Belajar Angka Sambil <span class="text-amber-400">Bergerak Aktif!</span>
+                </h2>
+                <p class="text-sm sm:text-base text-slate-400">
+                    Gerakkan tanganmu di depan kamera untuk menangkap nyamuk yang membawa angka sesuai instruksi suara!
+                </p>
+            </div>
+
+            <!-- Mode Selector Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-3xl px-4">
+                <!-- Solo Mode -->
+                <div onclick="selectMode('solo')" class="bg-gradient-to-br from-slate-800 to-slate-800/80 hover:from-sky-900/40 hover:to-slate-800 border-2 border-slate-700 hover:border-sky-400 rounded-3xl p-6 cursor-pointer transition-all duration-300 transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-sky-500/20 group flex flex-col justify-between">
+                    <div class="space-y-4">
+                        <div class="w-14 h-14 bg-sky-500/20 text-sky-400 rounded-2xl flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
+                            <i class="fa-solid fa-user"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold text-white group-hover:text-sky-300 transition">Mode Solo</h3>
+                            <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+                                Petualangan 1 pemain! Tangkap nyamuk sebanyak-banyaknya sesuai angka instruksi dalam waktu 60 detik.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="mt-6 flex items-center text-sky-400 text-xs font-bold group-hover:translate-x-2 transition">
+                        Mainkan Mode Solo <i class="fa-solid fa-arrow-right ml-2"></i>
+                    </div>
+                </div>
+
+                <!-- Battle Mode -->
+                <div onclick="selectMode('battle')" class="bg-gradient-to-br from-slate-800 to-slate-800/80 hover:from-rose-900/40 hover:to-slate-800 border-2 border-slate-700 hover:border-rose-400 rounded-3xl p-6 cursor-pointer transition-all duration-300 transform hover:-translate-y-1 hover:shadow-2xl hover:shadow-rose-500/20 group flex flex-col justify-between">
+                    <div class="space-y-4">
+                        <div class="w-14 h-14 bg-rose-500/20 text-rose-400 rounded-2xl flex items-center justify-center text-3xl group-hover:scale-110 transition-transform">
+                            <i class="fa-solid fa-users"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold text-white group-hover:text-rose-300 transition">Mode Battle (2 Pemain)</h3>
+                            <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+                                Tanding 2 pemain secara bersamaan! Layar terbagi dua (Pemain 1 vs Pemain 2). Siapa paling cepat?
+                            </p>
+                        </div>
+                    </div>
+                    <div class="mt-6 flex items-center text-rose-400 text-xs font-bold group-hover:translate-x-2 transition">
+                        Tanding 2 Pemain <i class="fa-solid fa-arrow-right ml-2"></i>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: KALIBRASI KAMERA DAN TANGAN -->
+        <section id="view-calibration" class="hidden flex-col items-center gap-6 max-w-4xl mx-auto w-full">
+            <div class="text-center space-y-2">
+                <span class="px-3 py-1 rounded-full bg-sky-500/20 text-sky-300 text-xs font-bold uppercase">Langkah Kalibrasi</span>
+                <h2 id="calib-title" class="text-2xl sm:text-3xl font-bold text-white">Tunjukkan Tanganmu di Depan Kamera</h2>
+                <p id="calib-subtitle" class="text-xs sm:text-sm text-slate-400">Pastikan tangan terlihat jelas pada layar untuk memulai permainan.</p>
+            </div>
+
+            <div class="w-full canvas-container bg-slate-950 rounded-2xl overflow-hidden border-2 border-slate-700 shadow-2xl">
+                <video id="webcam" class="hidden" playsinline></video>
+                <canvas id="calib_canvas" width="1280" height="720"></canvas>
+                
+                <!-- Overlay Guide -->
+                <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-slate-900/90 backdrop-blur-md px-4 py-2 rounded-xl border border-slate-700 text-xs text-center flex items-center gap-3">
+                    <i class="fa-solid fa-hand text-amber-400 animate-bounce text-lg"></i>
+                    <span id="calib-status-text" class="text-slate-300 font-semibold">Menghubungkan ke Kamera...</span>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4 w-full max-w-md">
+                <button onclick="goToMenu()" class="flex-1 py-3 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold text-sm rounded-xl transition">
+                    Batal
+                </button>
+                <button id="btn-start-game" disabled onclick="confirmCalibrationAndStart()" class="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-600 text-white font-bold text-sm rounded-xl transition shadow-lg pulse-btn">
+                    Mulai Bermain <i class="fa-solid fa-play ml-1.5"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- SECTION 3: AREA PERMAINAN UTAMA (CANVAS ARENA) -->
+        <section id="view-game" class="hidden flex-col gap-4">
+            
+            <!-- HUD TOP BAR -->
+            <div class="bg-slate-800/90 border border-slate-700 rounded-2xl p-3 sm:p-4 flex flex-wrap items-center justify-between gap-3 shadow-lg">
+                <!-- Target Voice Instruction Banner -->
+                <div class="flex items-center gap-3 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/40 px-4 py-2 rounded-xl flex-1 min-w-[260px]">
+                    <button onclick="speakTargetInstruction()" class="w-10 h-10 bg-amber-500 hover:bg-amber-400 text-slate-900 rounded-lg flex items-center justify-center text-lg font-bold transition shadow">
+                        <i class="fa-solid fa-volume-high"></i>
+                    </button>
+                    <div>
+                        <span class="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">Target Angka Suara:</span>
+                        <div class="flex items-center gap-2">
+                            <span id="hud-target-number" class="text-2xl font-black text-amber-300 font-display">?</span>
+                            <span id="hud-target-text" class="text-xs text-slate-200 font-semibold">"Tangkap Nyamuk..."</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Scores & Timer -->
+                <div class="flex items-center gap-2 sm:gap-4 ml-auto">
+                    <!-- Player 1 Score -->
+                    <div class="bg-p1-dark/40 border border-p1/40 px-3.5 py-1.5 rounded-xl text-center min-w-[80px]">
+                        <span class="text-[9px] text-p1-light font-bold uppercase block" id="hud-p1-label">Skor P1</span>
+                        <span id="score-p1" class="text-xl font-black text-white">0</span>
+                    </div>
+
+                    <!-- Player 2 Score (Battle Mode Only) -->
+                    <div id="hud-p2-score-box" class="hidden bg-p2-dark/40 border border-p2/40 px-3.5 py-1.5 rounded-xl text-center min-w-[80px]">
+                        <span class="text-[9px] text-p2-light font-bold uppercase block">Skor P2</span>
+                        <span id="score-p2" class="text-xl font-black text-white">0</span>
+                    </div>
+
+                    <!-- Game Timer -->
+                    <div class="bg-slate-900 border border-slate-700 px-4 py-1.5 rounded-xl text-center min-w-[80px]">
+                        <span class="text-[9px] text-slate-400 font-bold uppercase block">Waktu</span>
+                        <span id="game-timer" class="text-xl font-black text-emerald-400">60s</span>
+                    </div>
+
+                    <!-- Pause Button -->
+                    <button onclick="togglePause()" class="w-10 h-10 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-xl flex items-center justify-center transition">
+                        <i id="pause-icon" class="fa-solid fa-pause"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Game Canvas Arena Viewport -->
+            <div class="relative canvas-container bg-slate-950 rounded-2xl overflow-hidden border-2 border-slate-700 shadow-2xl">
+                <canvas id="game_canvas" width="1280" height="720"></canvas>
+
+                <!-- Paused Overlay Banner -->
+                <div id="pause-overlay" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-md z-30 flex flex-col items-center justify-center text-center p-6">
+                    <i class="fa-solid fa-circle-pause text-6xl text-amber-400 mb-3 animate-pulse"></i>
+                    <h3 class="text-3xl font-bold text-white">Permainan Dijeda</h3>
+                    <p class="text-xs text-slate-400 mt-1 mb-6">Istirahat sejenak, lalu lanjutkan keseruannya!</p>
+                    <div class="flex gap-4">
+                        <button onclick="togglePause()" class="px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold rounded-xl text-sm transition">
+                            Lanjutkan
+                        </button>
+                        <button onclick="goToMenu()" class="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold rounded-xl text-sm transition">
+                            Menu Utama
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 4: GAMEOVER & RINGKASAN SKOR -->
+        <section id="view-result" class="hidden flex-col items-center justify-center py-6 max-w-xl mx-auto w-full text-center space-y-6">
+            <div class="bg-slate-800 border border-slate-700 p-8 rounded-3xl shadow-2xl w-full flex flex-col items-center space-y-6">
+                <div class="w-20 h-20 bg-amber-500/20 text-amber-400 rounded-3xl flex items-center justify-center text-4xl shadow-inner">
+                    <i class="fa-solid fa-trophy"></i>
+                </div>
+
+                <div>
+                    <span class="text-xs font-bold text-amber-400 uppercase tracking-widest">Waktu Habis!</span>
+                    <h2 id="result-winner-title" class="text-3xl sm:text-4xl font-black text-white mt-1 font-display">Hasil Pertandingan</h2>
+                </div>
+
+                <!-- Final Score Card Display -->
+                <div id="result-score-container" class="grid grid-cols-1 gap-4 w-full">
+                    <!-- Populated dynamically JS -->
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-col sm:flex-row gap-3 w-full">
+                    <button onclick="restartCurrentGame()" class="flex-1 py-3 bg-amber-500 hover:bg-amber-400 text-slate-900 font-extrabold text-sm rounded-xl transition shadow-lg">
+                        <i class="fa-solid fa-rotate-right mr-1.5"></i> Main Lagi
+                    </button>
+                    <button onclick="goToMenu()" class="flex-1 py-3 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold text-sm rounded-xl transition">
+                        <i class="fa-solid fa-house mr-1.5"></i> Menu Utama
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- DIAGNOSTICS OVERLAY PANEL (COLLAPSIBLE) -->
+    <div id="diag-panel" class="hidden fixed bottom-14 right-4 z-40 bg-slate-900/95 border border-slate-700 p-4 rounded-2xl shadow-2xl text-xs w-72 backdrop-blur-md">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
+            <span class="font-bold text-sky-400 flex items-center gap-1.5">
+                <i class="fa-solid fa-bug"></i> Panel Diagnostik Live
+            </span>
+            <button onclick="toggleDiagnostics()" class="text-slate-500 hover:text-slate-300">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="space-y-1.5 text-slate-300 font-mono text-[11px]">
+            <div class="flex justify-between"><span>Status Kamera:</span> <span id="diag-cam-status" class="text-emerald-400 font-bold">OFF</span></div>
+            <div class="flex justify-between"><span>Tangan Terdeteksi:</span> <span id="diag-hands-count" class="text-amber-400 font-bold">0</span></div>
+            <div class="flex justify-between"><span>Frame Rate (FPS):</span> <span id="diag-fps" class="text-sky-400 font-bold">0</span></div>
+            <div class="flex justify-between"><span>Sensitivitas:</span> <span id="diag-sens" class="text-slate-200">Tinggi (1.5x)</span></div>
+            <div class="flex justify-between"><span>P1 Hand Pos:</span> <span id="diag-p1-pos" class="text-slate-400">-</span></div>
+            <div class="flex justify-between"><span>P2 Hand Pos:</span> <span id="diag-p2-pos" class="text-slate-400">-</span></div>
+        </div>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div id="modal-settings" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-700 w-full max-w-md p-6 rounded-3xl shadow-2xl space-y-5">
+            <div class="flex items-center justify-between border-b border-slate-700 pb-3">
+                <h3 class="font-bold text-white text-lg flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-amber-400"></i> Pengaturan Game
+                </h3>
+                <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="space-y-4 text-xs">
+                <!-- Sensitivity Adjustment -->
+                <div class="space-y-1.5">
+                    <label class="font-bold text-slate-300 flex justify-between">
+                        <span>Tingkat Sensitivitas Tangkapan:</span>
+                        <span id="sens-label-val" class="text-amber-400">Tinggi (1.5x)</span>
+                    </label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="setSensitivity('low')" id="btn-sens-low" class="py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-center font-semibold text-slate-300">Rendah (1.1x)</button>
+                        <button onclick="setSensitivity('medium')" id="btn-sens-medium" class="py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-center font-semibold text-slate-300">Sedang (1.3x)</button>
+                        <button onclick="setSensitivity('high')" id="btn-sens-high" class="py-2 bg-amber-500 text-slate-900 rounded-lg text-center font-bold">Tinggi (1.5x)</button>
+                    </div>
+                </div>
+
+                <!-- Speech Audio Check -->
+                <div class="p-3 bg-slate-900/60 rounded-xl border border-slate-700 flex items-center justify-between">
+                    <div>
+                        <span class="font-bold text-slate-200 block">Suara Instruksi Narator</span>
+                        <span class="text-[10px] text-slate-400">Menggunakan Web Speech Bahasa Indonesia</span>
+                    </div>
+                    <button onclick="testVoice()" class="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white font-bold text-[11px] rounded-lg">
+                        Tes Suara
+                    </button>
+                </div>
+            </div>
+
+            <button onclick="closeSettingsModal()" class="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold rounded-xl text-xs transition">
+                Simpan & Tutup
+            </button>
+        </div>
+    </div>
+
+    <!-- FOOTER DEVELOPER -->
+    <footer class="bg-slate-950 border-t border-slate-800 py-3 px-4 text-center text-xs text-slate-400">
+        <p class="font-medium">
+            Dikembangkan oleh <span class="font-extrabold text-amber-400">Giga Inovation</span> &bull; Kontak: <span class="text-sky-400 font-semibold">081329200985</span>
+        </p>
+    </footer>
+
+    <!-- GAME ENGINE & COMPUTER VISION LOGIC -->
+    <script>
+        /* -------------------------------------------------------------------------- */
+        /*                          GLOBAL ENGINE STATE                               */
+        /* -------------------------------------------------------------------------- */
+        const STATE = {
+            currentView: 'menu', // 'menu', 'calibration', 'game', 'result'
+            mode: 'solo',        // 'solo' or 'battle'
+            isPaused: false,
+            gameDuration: 60,
+            timer: 60,
+            timerInterval: null,
+            targetNumber: 0,
+            sensitivity: 1.5,   // High multiplier default
+            sensitivityName: 'Tinggi (1.5x)',
+            
+            // Player tracking states
+            players: {
+                p1: { score: 0, x: -100, y: -100, prevX: -100, prevY: -100, detected: false, label: 'Pemain 1' },
+                p2: { score: 0, x: -100, y: -100, prevX: -100, prevY: -100, detected: false, label: 'Pemain 2' }
+            },
+
+            // Mosquitoes array
+            mosquitoes: [],
+            spawnInterval: null,
+            maxMosquitoes: 6,
+
+            // MediaPipe & Camera
+            camera: null,
+            hands: null,
+            camActive: false,
+            fps: 0,
+            frameCount: 0,
+            lastFpsUpdate: Date.now(),
+
+            // Speech Synthesis
+            speechSupported: 'speechSynthesis' in window,
+            voice: null
+        };
+
+        /* Mosquito Class Definition */
+        class Mosquito {
+            constructor(id, x, y, number, region = 'full') {
+                this.id = id;
+                this.x = x;
+                this.y = y;
+                this.number = number;
+                this.region = region; // 'left', 'right', or 'full'
+                this.radius = 36;    // Base visual radius
+                this.vx = (Math.random() - 0.5) * 3;
+                this.vy = (Math.random() - 0.5) * 3;
+                this.wingAngle = 0;
+                this.isCaught = false;
+                this.popAnim = 0; // For caught animation scaling
+            }
+
+            update(width, height) {
+                if (this.isCaught) {
+                    this.popAnim += 0.1;
+                    return;
+                }
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Random slight directional change (erratic flight)
+                if (Math.random() < 0.03) {
+                    this.vx += (Math.random() - 0.5) * 1.5;
+                    this.vy += (Math.random() - 0.5) * 1.5;
+                    // Clamp speeds
+                    this.vx = Math.max(-4, Math.min(4, this.vx));
+                    this.vy = Math.max(-4, Math.min(4, this.vy));
+                }
+
+                // Region boundary bouncing
+                let minX = 40;
+                let maxX = width - 40;
+                if (this.region === 'left') maxX = (width / 2) - 40;
+                if (this.region === 'right') minX = (width / 2) + 40;
+
+                if (this.x < minX) { this.x = minX; this.vx *= -1; }
+                if (this.x > maxX) { this.x = maxX; this.vx *= -1; }
+                if (this.y < 80) { this.y = 80; this.vy *= -1; }
+                if (this.y > height - 60) { this.y = height - 60; this.vy *= -1; }
+
+                this.wingAngle += 0.4;
+            }
+
+            draw(ctx) {
+                if (this.isCaught) {
+                    // Splat / Pop animation
+                    ctx.save();
+                    ctx.translate(this.x, this.y);
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.radius * (1 + this.popAnim), 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = 'bold 20px Poppins';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('+1', 0, 0);
+                    ctx.restore();
+                    return;
+                }
+
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                // Hitbox Area Indicator (Subtle ring)
+                ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius * STATE.sensitivity, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // Wings animation
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                const wingOffset = Math.sin(this.wingAngle) * 12;
+                ctx.beginPath();
+                ctx.ellipse(-12, -18 + wingOffset, 14, 8, Math.PI / 4, 0, Math.PI * 2);
+                ctx.ellipse(12, -18 - wingOffset, 14, 8, -Math.PI / 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Cartoon Body
+                ctx.fillStyle = '#1e293b';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 22, 16, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Cartoon Eyes
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(-8, -6, 6, 0, Math.PI * 2);
+                ctx.arc(8, -6, 6, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.arc(-8, -6, 2.5, 0, Math.PI * 2);
+                ctx.arc(8, -6, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Number Badge Bubble (Target number carrier)
+                ctx.fillStyle = '#f59e0b';
+                ctx.beginPath();
+                ctx.arc(0, 20, 16, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Number Text
+                ctx.fillStyle = '#0f172a';
+                ctx.font = 'black 18px Poppins';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.number.toString(), 0, 21);
+
+                ctx.restore();
+            }
+        }
+
+        /* -------------------------------------------------------------------------- */
+        /*                      SPEECH SYNTHESIS ENGINE                               */
+        /* -------------------------------------------------------------------------- */
+        function initSpeech() {
+            if (!STATE.speechSupported) return;
+            const loadVoices = () => {
+                const voices = window.speechSynthesis.getVoices();
+                STATE.voice = voices.find(v => v.lang.includes('id') || v.lang.includes('ID')) || voices[0];
+            };
+            loadVoices();
+            if (speechSynthesis.onvoiceschanged !== undefined) {
+                speechSynthesis.onvoiceschanged = loadVoices;
+            }
+        }
+
+        function speakText(text) {
+            if (!STATE.speechSupported) return;
+            window.speechSynthesis.cancel(); // Stop prior queue
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'id-ID';
+            utterance.rate = 1.0;
+            utterance.pitch = 1.1;
+            if (STATE.voice) utterance.voice = STATE.voice;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function testVoice() {
+            speakText("Halo! Sensor deteksi tangan siap digunakan.");
+        }
+
+        /* -------------------------------------------------------------------------- */
+        /*                       MEDIAPIPE HAND TRACKING                              */
+        /* -------------------------------------------------------------------------- */
+        function initMediaPipe() {
+            const videoElement = document.getElementById('webcam');
+            
+            STATE.hands = new Hands({
+                locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
+            });
+
+            STATE.hands.setOptions({
+                maxNumHands: 2,
+                modelComplexity: 1,
+                minDetectionConfidence: 0.6,
+                minTrackingConfidence: 0.6
+            });
+
+            STATE.hands.onResults(onHandResults);
+
+            STATE.camera = new Camera(videoElement, {
+                onFrame: async () => {
+                    if (STATE.camActive) {
+                        await STATE.hands.send({ image: videoElement });
+                    }
+                },
+                width: 1280,
+                height: 720
+            });
+
+            STATE.camera.start().then(() => {
+                STATE.camActive = true;
+                document.getElementById('diag-cam-status').innerText = 'ON';
+                document.getElementById('diag-cam-status').className = 'text-emerald-400 font-bold';
+            }).catch(err => {
+                console.error("Camera access denied or failed:", err);
+                document.getElementById('diag-cam-status').innerText = 'ERROR';
+                document.getElementById('diag-cam-status').className = 'text-rose-400 font-bold';
+                alert("Gagal mengakses kamera. Harap berikan izin akses webcam pada browser.");
+            });
+        }
+
+        function onHandResults(results) {
+            // Update FPS diagnostics
+            STATE.frameCount++;
+            const now = Date.now();
+            if (now - STATE.lastFpsUpdate >= 1000) {
+                STATE.fps = STATE.frameCount;
+                STATE.frameCount = 0;
+                STATE.lastFpsUpdate = now;
+                document.getElementById('diag-fps').innerText = STATE.fps;
+            }
+
+            const canvasWidth = 1280;
+            const canvasHeight = 720;
+
+            // Reset detection status
+            STATE.players.p1.detected = false;
+            STATE.players.p2.detected = false;
+
+            const handCount = results.multiHandLandmarks ? results.multiHandLandmarks.length : 0;
+            document.getElementById('diag-hands-count').innerText = handCount;
+
+            if (handCount > 0) {
+                results.multiHandLandmarks.forEach((landmarks) => {
+                    // Wrist (0) and Middle Finger MCP (9) center point = Palm Center
+                    const palmX = (1 - (landmarks[0].x + landmarks[9].x) / 2) * canvasWidth; // Inverted X for mirrored camera
+                    const palmY = ((landmarks[0].y + landmarks[9].y) / 2) * canvasHeight;
+
+                    if (STATE.mode === 'solo') {
+                        // In Solo Mode, any hand controls Player 1
+                        updatePlayerPosition('p1', palmX, palmY);
+                    } else {
+                        // In Battle Mode, split by screen half (Left = P1, Right = P2)
+                        if (palmX < canvasWidth / 2) {
+                            updatePlayerPosition('p1', palmX, palmY);
+                        } else {
+                            updatePlayerPosition('p2', palmX, palmY);
+                        }
+                    }
+                });
+            }
+
+            // Render current active view
+            if (STATE.currentView === 'calibration') {
+                renderCalibrationCanvas();
+            } else if (STATE.currentView === 'game' && !STATE.isPaused) {
+                renderGameLoop();
+            }
+        }
+
+        function updatePlayerPosition(playerKey, targetX, targetY) {
+            const player = STATE.players[playerKey];
+            player.prevX = player.x;
+            player.prevY = player.y;
+
+            // Exponential Smoothing (0.35 factor) for ultra-responsive yet stable tracking
+            if (!player.detected) {
+                player.x = targetX;
+                player.y = targetY;
+            } else {
+                player.x = player.x + (targetX - player.x) * 0.45;
+                player.y = player.y + (targetY - player.y) * 0.45;
+            }
+            player.detected = true;
+
+            // Diag display
+            document.getElementById(`diag-${playerKey}-pos`).innerText = `${Math.round(player.x)}, ${Math.round(player.y)}`;
+        }
+
+        /* -------------------------------------------------------------------------- */
+        /*                       NAVIGATION & VIEW SWITCHING                          */
+        /* -------------------------------------------------------------------------- */
+        function switchView(viewName) {
+            STATE.currentView = viewName;
+            document.getElementById('view-menu').classList.add('hidden');
+            document.getElementById('view-calibration').classList.add('hidden');
+            document.getElementById('view-game').classList.add('hidden');
+            document.getElementById('view-result').classList.add('hidden');
+
+            document.getElementById(`view-${viewName}`).classList.remove('hidden');
+            document.getElementById(`view-${viewName}`).classList.add('flex');
+        }
+
+        function goToMenu() {
+            stopGame();
+            switchView('menu');
+        }
+
+        function selectMode(mode) {
+            STATE.mode = mode;
+            switchView('calibration');
+            setupCalibrationUI();
+        }
+
+        function setupCalibrationUI() {
+            const title = document.getElementById('calib-title');
+            const subtitle = document.getElementById('calib-subtitle');
+            
+            if (STATE.mode === 'solo') {
+                title.innerText = "Tunjukkan Tanganmu di Depan Kamera";
+                subtitle.innerText = "Gerakkan tanganmu ke kiri, kanan, atas, dan bawah untuk menguji pelacak.";
+            } else {
+                title.innerText = "Persiapan Mode Battle (2 Pemain)";
+                subtitle.innerText = "Pemain 1 berdiri di sebelah KIRI, Pemain 2 berdiri di sebelah KANAN kamera.";
+            }
+        }
+
+        function confirmCalibrationAndStart() {
+            switchView('game');
+            startGame();
+        }
+
+        /* -------------------------------------------------------------------------- */
+        /*                      CALIBRATION CANVAS RENDER                             */
+        /* -------------------------------------------------------------------------- */
+        function renderCalibrationCanvas() {
+            const canvas = document.getElementById('calib_canvas');
+            const ctx = canvas.getContext('2d');
+            const video = document.getElementById('webcam');
+
+            // Draw mirrored video frame
+            ctx.save();
+            ctx.scale(-1, 1);
+            ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+            ctx.restore();
+
+            const p1 = STATE.players.p1;
+            const p2 = STATE.players.p2;
+            const statusText = document.getElementById('calib-status-text');
+            const startBtn = document.getElementById('btn-start-game');
+
+            if (STATE.mode === 'battle') {
+                // Draw dividing middle line
+                ctx.strokeStyle = '#f59e0b';
+                ctx.lineWidth = 4;
+                ctx.setLineDash([12, 12]);
+                ctx.beginPath();
+                ctx.moveTo(canvas.width / 2, 0);
+                ctx.lineTo(canvas.width / 2, canvas.height);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Labels
+                ctx.fillStyle = '#0284c7';
+                ctx.font = 'bold 24px Poppins';
+                ctx.fillText("WILAYAH PEMAIN 1", 40, 50);
+
+                ctx.fillStyle = '#e11d48';
+                ctx.font = 'bold 24px Poppins';
+                ctx.fillText("WILAYAH PEMAIN 2", canvas.width / 2 + 40, 50);
+            }
+
+            // Draw Hand Pointer overlay for calibration
+            if (p1.detected) drawHandPointer(ctx, p1.x, p1.y, '#0284c7', 'Tangan P1');
+            if (p2.detected && STATE.mode === 'battle') drawHandPointer(ctx, p2.x, p2.y, '#e11d48', 'Tangan P2');
+
+            // Calibration status logic
+            if (STATE.mode === 'solo') {
+                if (p1.detected) {
+                    statusText.innerText = "Tangan terdeteksi sempurna! Klik Mulai Bermain.";
+                    statusText.className = "text-emerald-400 font-bold";
+                    startBtn.disabled = false;
+                } else {
+                    statusText.innerText = "Mencari tangan... Hadapkan telapak tangan ke kamera.";
+                    statusText.className = "text-amber-400 font-semibold";
+                    startBtn.disabled = true;
+                }
+            } else {
+                if (p1.detected && p2.detected) {
+                    statusText.innerText = "Kedua tangan Pemain 1 & 2 terdeteksi! Siap berlaga.";
+                    statusText.className = "text-emerald-400 font-bold";
+                    startBtn.disabled = false;
+                } else if (p1.detected || p2.detected) {
+                    statusText.innerText = "Baru 1 tangan terdeteksi. Pastikan kedua pemain terlihat.";
+                    statusText.className = "text-amber-400 font-semibold";
+                    startBtn.disabled = false; // Allow single player start in battle if needed
+                } else {
+                    statusText.innerText = "Menunggu kedua pemain berdiri di depan kamera...";
+                    statusText.className = "text-rose-400 font-semibold";
+                    startBtn.disabled = true;
+                }
+            }
+        }
+
+        function drawHandPointer(ctx, x, y, color, label) {
+            ctx.save();
+            // Glow
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 15;
+
+            // Outer ring
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, 28, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Inner core
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(x, y, 12, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Label text
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 14px Poppins';
+            ctx.textAlign = 'center';
+            ctx.fillText(label, x, y - 36);
+            ctx.restore();
+        }
+
+        /* -------------------------------------------------------------------------- */
+        /*                       GAME LOGIC & ROUND ENGINE                            */
+        /* -------------------------------------------------------------------------- */
+        function startGame() {
+            STATE.players.p1.score = 0;
+            STATE.players.p2.score = 0;
+            STATE.timer = STATE.gameDuration;
+            STATE.isPaused = false;
+            
+            document.getElementById('score-p1').innerText = '0';
+            document.getElementById('score-p2').innerText = '0';
+            document.getElementById('game-timer').innerText = `${STATE.timer}s`;
+
+            if (STATE.mode === 'battle') {
+                document.getElementById('hud-p2-score-box').classList.remove('hidden');
+                document.getElementById('hud-p1-label').innerText = "SKOR P1";
+            } else {
+                document.getElementById('hud-p2-score-box').classList.add('hidden');
+                document.getElementById('hud-p1-label').innerText = "SKOR SAYA";
+            }
+
+            nextRound();
+
+            // Start Countdown Timer
+            clearInterval(STATE.timerInterval);
+            STATE.timerInterval = setInterval(() => {
+                if (!STATE.isPaused) {
+                    STATE.timer--;
+                    document.getElementById('game-timer').innerText = `${STATE.timer}s`;
+                    if (STATE.timer <= 0) {
+                        endGame();
+                    }
+                }
+            }, 1000);
+
+            // Mosquito Spawner Loop
+            clearInterval(STATE.spawnInterval);
+            STATE.spawnInterval = setInterval(() => {
+                if (!STATE.isPaused) {
+                    maintainMosquitoPopulation();
+                }
+            }, 1500);
+        }
+
+        function stopGame() {
+            clearInterval(STATE.timerInterval);
+            clearInterval(STATE.spawnInterval);
+            STATE.mosquitoes = [];
+        }
+
+        function togglePause() {
+            STATE.isPaused = !STATE.isPaused;
+            const overlay = document.getElementById('pause-overlay');
+            const icon = document.getElementById('pause-icon');
+            if (STATE.isPaused) {
+                overlay.classList.remove('hidden');
+                icon.className = 'fa-solid fa-play';
+            } else {
+                overlay.classList.add('hidden');
+                icon.className = 'fa-solid fa-pause';
+            }
+        }
+
+        function nextRound() {
+            // Select random target number between 0 and 9
+            STATE.targetNumber = Math.floor(Math.random() * 10);
+            
+            document.getElementById('hud-target-number').innerText = STATE.targetNumber;
+            document.getElementById('hud-target-text').innerText = `"Tangkap nyamuk berangka ${STATE.targetNumber}!"`;
+
+            // Announce Target Voice
+            speakTargetInstruction();
+
+            // Clear & Respawn mosquitoes
+            STATE.mosquitoes = [];
+            maintainMosquitoPopulation();
+        }
+
+        function speakTargetInstruction() {
+            const numberWords = ["Nol", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan"];
+            speakText(`Tangkap nyamuk yang membawa angka ${numberWords[STATE.targetNumber]}!`);
+        }
+
+        function maintainMosquitoPopulation() {
+            const canvasWidth = 1280;
+            const canvasHeight = 720;
+
+            if (STATE.mode === 'solo') {
+                if (STATE.mosquitoes.length < STATE.maxMosquitoes) {
+                    // Ensure at least 2 target mosquitoes exist
+                    const targetCount = STATE.mosquitoes.filter(m => m.number === STATE.targetNumber).length;
+                    const numToAssign = (targetCount < 2) ? STATE.targetNumber : Math.floor(Math.random() * 10);
+                    
+                    const m = new Mosquito(
+                        Date.now() + Math.random(),
+                        Math.random() * (canvasWidth - 120) + 60,
+                        Math.random() * (canvasHeight - 200) + 100,
+                        numToAssign,
+                        'full'
+                    );
+                    STATE.mosquitoes.push(m);
+                }
+            } else {
+                // Battle Mode: Maintain equal mosquitoes on left (P1) and right (P2)
+                const leftMosquitoes = STATE.mosquitoes.filter(m => m.region === 'left');
+                const rightMosquitoes = STATE.mosquitoes.filter(m => m.region === 'right');
+
+                if (leftMosquitoes.length < 3) {
+                    const num = (leftMosquitoes.filter(m => m.number === STATE.targetNumber).length < 1) ? STATE.targetNumber : Math.floor(Math.random() * 10);
+                    STATE.mosquitoes.push(new Mosquito(Date.now() + Math.random(), Math.random() * (canvasWidth / 2 - 120) + 60, Math.random() * (canvasHeight - 200) + 100, num, 'left'));
+                }
+
+                if (rightMosquitoes.length < 3) {
+                    const num = (rightMosquitoes.filter(m => m.number === STATE.targetNumber).length < 1) ? STATE.targetNumber : Math.floor(Math.random() * 10);
+                    STATE.mosquitoes.push(new Mosquito(Date.now() + Math.random(), Math.random() * (canvasWidth / 2 - 120) + (canvasWidth / 2) + 60, Math.random() * (canvasHeight - 200) + 100, num, 'right'));
+                }
+            }
+        }
+
+        /* -------------------------------------------------------------------------- */
+        /*              GAME RENDER & CONTINUOUS COLLISION DETECTION                  */
+        /* -------------------------------------------------------------------------- */
+        function renderGameLoop() {
+            const canvas = document.getElementById('game_canvas');
+            const ctx = canvas.getContext('2d');
+            const video = document.getElementById('webcam');
+
+            // 1. Draw Mirrored Camera Background
+            ctx.save();
+            ctx.scale(-1, 1);
+            ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+            ctx.restore();
+
+            // Darken background slightly for contrast
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.45)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 2. Battle Mode Division Line
+            if (STATE.mode === 'battle') {
+                ctx.strokeStyle = 'rgba(245, 158, 11, 0.6)';
+                ctx.lineWidth = 4;
+                ctx.setLineDash([12, 12]);
+                ctx.beginPath();
+                ctx.moveTo(canvas.width / 2, 0);
+                ctx.lineTo(canvas.width / 2, canvas.height);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // 3. Update & Draw Mosquitoes
+            for (let i = STATE.mosquitoes.length - 1; i >= 0; i--) {
+                const m = STATE.mosquitoes[i];
+                m.update(canvas.width, canvas.height);
+                m.draw(ctx);
+
+                // Clean up caught animated mosquitoes
+                if (m.isCaught && m.popAnim > 1) {
+                    STATE.mosquitoes.splice(i, 1);
+                }
+            }
+
+            // 4. Process Player Hand Collisions & Draw Hand Pointers
+            checkPlayerCollisions('p1');
+            if (STATE.players.p1.detected) drawHandPointer(ctx, STATE.players.p1.x, STATE.players.p1.y, '#0284c7', STATE.players.p1.label);
+
+            if (STATE.mode === 'battle') {
+                checkPlayerCollisions('p2');
+                if (STATE.players.p2.detected) drawHandPointer(ctx, STATE.players.p2.x, STATE.players.p2.y, '#e11d48', STATE.players.p2.label);
+            }
+        }
+
+        function checkPlayerCollisions(playerKey) {
+            const player = STATE.players[playerKey];
+            if (!player.detected) return;
+
+            const handX = player.x;
+            const handY = player.y;
+            const prevHandX = player.prevX;
+            const prevHandY = player.prevY;
+
+            STATE.mosquitoes.forEach(m => {
+                if (m.isCaught) return;
+
+                // Child-friendly dynamic catch radius
+                const catchRadius = m.radius * STATE.sensitivity;
+
+                // Continuous Collision Detection (CCD): Interpolate path between last frame & current frame
+                const hit = lineIntersectsCircle(prevHandX, prevHandY, handX, handY, m.x, m.y, catchRadius);
+
+                if (hit) {
+                    m.isCaught = true;
+
+                    if (m.number === STATE.targetNumber) {
+                        // CORRECT CATCH!
+                        player.score += 100;
+                        document.getElementById(`score-${playerKey}`).innerText = player.score;
+                        speakText("Hebat sekali!");
+
+                        // Advance round automatically on correct catch
+                        setTimeout(() => {
+                            nextRound();
+                        }, 600);
+                    } else {
+                        // INCORRECT CATCH!
+                        speakText("Belum tepat, coba lagi!");
+                    }
+                }
+            });
+        }
+
+        // Helper: Line segment to circle intersection test (CCD)
+        function lineIntersectsCircle(x1, y1, x2, y2, cx, cy, r) {
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const len = Math.sqrt(dx * dx + dy * dy);
+
+            if (len === 0) {
+                // Hand stationary
+                const dist = Math.hypot(x1 - cx, y1 - cy);
+                return dist <= r;
+            }
+
+            // Project circle center onto line
+            const u = ((cx - x1) * dx + (cy - y1) * dy) / (len * len);
+            const clampedU = Math.max(0, Math.min(1, u));
+
+            const nearestX = x1 + clampedU * dx;
+            const nearestY = y1 + clampedU * dy;
+
+            const dist = Math.hypot(nearestX - cx, nearestY - cy);
+            return dist <= r;
+        }
+
+        /* -------------------------------------------------------------------------- */
+        /*                         END GAME & RESULTS                                 */
+        /* -------------------------------------------------------------------------- */
+        function endGame() {
+            stopGame();
+            switchView('result');
+
+            const container = document.getElementById('result-score-container');
+            const winnerTitle = document.getElementById('result-winner-title');
+
+            if (STATE.mode === 'solo') {
+                winnerTitle.innerText = "Permainan Selesai!";
+                speakText(`Luar biasa! Skor akhirmu adalah ${STATE.players.p1.score} poin.`);
+                
+                container.innerHTML = `
+                    <div class="bg-slate-900 border border-sky-500/40 p-5 rounded-2xl flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-user text-3xl text-sky-400"></i>
+                            <div class="text-left">
+                                <span class="text-xs text-slate-400 font-bold uppercase">Total Skor Anda</span>
+                                <h4 class="text-2xl font-black text-white">${STATE.players.p1.score} Poin</h4>
+                            </div>
+                        </div>
+                        <span class="px-3 py-1 bg-sky-500/20 text-sky-300 font-bold text-xs rounded-full">Mode Solo</span>
+                    </div>
+                `;
+            } else {
+                const p1Score = STATE.players.p1.score;
+                const p2Score = STATE.players.p2.score;
+
+                if (p1Score > p2Score) {
+                    winnerTitle.innerText = "Pemain 1 Menang! 🎉";
+                    speakText(`Selamat! Pemain 1 menang dengan skor ${p1Score} poin.`);
+                } else if (p2Score > p1Score) {
+                    winnerTitle.innerText = "Pemain 2 Menang! 🎉";
+                    speakText(`Selamat! Pemain 2 menang dengan skor ${p2Score} poin.`);
+                } else {
+                    winnerTitle.innerText = "Hasil Seri! 🤝";
+                    speakText(`Pertandingan berakhir seri dengan skor ${p1Score} sama.`);
+                }
+
+                container.innerHTML = `
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-slate-900 border border-p1/40 p-4 rounded-2xl text-center space-y-1">
+                            <span class="text-[10px] text-p1-light font-bold uppercase">Pemain 1</span>
+                            <p class="text-3xl font-black text-white">${p1Score}</p>
+                            <span class="text-[10px] text-slate-400 block">Poin</span>
+                        </div>
+                        <div class="bg-slate-900 border border-p2/40 p-4 rounded-2xl text-center space-y-1">
+                            <span class="text-[10px] text-p2-light font-bold uppercase">Pemain 2</span>
+                            <p class="text-3xl font-black text-white">${p2Score}</p>
+                            <span class="text-[10px] text-slate-400 block">Poin</span>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        function restartCurrentGame() {
+            switchView('game');
+            startGame();
+        }
+
+        /* -------------------------------------------------------------------------- */
+        /*                       SETTINGS & DIAGNOSTICS CONTROL                       */
+        /* -------------------------------------------------------------------------- */
+        function toggleDiagnostics() {
+            const panel = document.getElementById('diag-panel');
+            panel.classList.toggle('hidden');
+        }
+
+        function openSettingsModal() {
+            document.getElementById('modal-settings').classList.remove('hidden');
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('modal-settings').classList.add('hidden');
+        }
+
+        function setSensitivity(level) {
+            const btnLow = document.getElementById('btn-sens-low');
+            const btnMed = document.getElementById('btn-sens-medium');
+            const btnHigh = document.getElementById('btn-sens-high');
+
+            btnLow.className = "py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-center font-semibold text-slate-300";
+            btnMed.className = "py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-center font-semibold text-slate-300";
+            btnHigh.className = "py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-center font-semibold text-slate-300";
+
+            if (level === 'low') {
+                STATE.sensitivity = 1.1;
+                STATE.sensitivityName = 'Rendah (1.1x)';
+                btnLow.className = "py-2 bg-amber-500 text-slate-900 rounded-lg text-center font-bold";
+            } else if (level === 'medium') {
+                STATE.sensitivity = 1.3;
+                STATE.sensitivityName = 'Sedang (1.3x)';
+                btnMed.className = "py-2 bg-amber-500 text-slate-900 rounded-lg text-center font-bold";
+            } else {
+                STATE.sensitivity = 1.5;
+                STATE.sensitivityName = 'Tinggi (1.5x)';
+                btnHigh.className = "py-2 bg-amber-500 text-slate-900 rounded-lg text-center font-bold";
+            }
+
+            document.getElementById('sens-label-val').innerText = STATE.sensitivityName;
+            document.getElementById('diag-sens').innerText = STATE.sensitivityName;
+        }
+
+        /* -------------------------------------------------------------------------- */
+        /*                              INITIALIZATION                                */
+        /* -------------------------------------------------------------------------- */
+        window.addEventListener('load', () => {
+            initSpeech();
+            initMediaPipe();
+        });
+    </script>
+</body>
+</html>
